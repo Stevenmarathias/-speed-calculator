@@ -34,6 +34,28 @@
     font-size: 1rem;
     width: 110px;
   }
+  .toggle {
+    display: inline-flex;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    overflow: hidden;
+    background: white;
+  }
+  .toggle button {
+    padding: 0.5rem 0.9rem;
+    border: none;
+    background: white;
+    cursor: pointer;
+    font-size: 0.95rem;
+    color: #444;
+    transition: background 0.15s, color 0.15s;
+  }
+  .toggle button + button { border-left: 1px solid #ccc; }
+  .toggle button.active {
+    background: #2b6cb0;
+    color: white;
+    font-weight: 600;
+  }
   table {
     width: 100%;
     border-collapse: collapse;
@@ -62,41 +84,48 @@
 <body>
 
 <h1>Speed Over 60 Calculator</h1>
-<p class="subtitle">At 60 mph you cover exactly 1 mile per minute. See what every mph above that saves you.</p>
+<p class="subtitle" id="subtitle">At 60 mph you cover exactly 1 mile per minute. See what every mph above that saves you.</p>
 
 <div class="controls">
   <div class="field">
-    <label for="minSpeed">Min speed (mph)</label>
-    <input type="number" id="minSpeed" value="60" min="1" max="200">
+    <label>Units</label>
+    <div class="toggle" id="unitToggle">
+      <button type="button" data-unit="mph" class="active">mph</button>
+      <button type="button" data-unit="kmh">km/h</button>
+    </div>
   </div>
   <div class="field">
-    <label for="maxSpeed">Max speed (mph)</label>
-    <input type="number" id="maxSpeed" value="100" min="1" max="300">
+    <label for="minSpeed">Min speed (<span class="unit-speed">mph</span>)</label>
+    <input type="number" id="minSpeed" value="60" min="1" max="500">
+  </div>
+  <div class="field">
+    <label for="maxSpeed">Max speed (<span class="unit-speed">mph</span>)</label>
+    <input type="number" id="maxSpeed" value="100" min="1" max="500">
   </div>
   <div class="field">
     <label for="step">Step</label>
     <input type="number" id="step" value="1" min="1" max="20">
   </div>
   <div class="field">
-    <label for="tripMiles">Trip distance (miles)</label>
-    <input type="number" id="tripMiles" value="100" min="1" max="10000">
+    <label for="tripDistance">Trip distance (<span class="unit-distance">miles</span>)</label>
+    <input type="number" id="tripDistance" value="100" min="1" max="10000">
   </div>
 </div>
 
 <table id="resultsTable">
   <thead>
     <tr>
-      <th>Speed (mph)</th>
-      <th>Miles / minute</th>
-      <th>Seconds / mile</th>
-      <th>Sec saved per mile<br>(vs 60 mph)</th>
-      <th>Time saved on trip<br>(vs 60 mph)</th>
+      <th>Speed (<span class="unit-speed">mph</span>)</th>
+      <th><span class="unit-distance-cap">Miles</span> / minute</th>
+      <th>Seconds / <span class="unit-distance-singular">mile</span></th>
+      <th>Sec saved per <span class="unit-distance-singular">mile</span><br>(vs 60 <span class="unit-speed">mph</span>)</th>
+      <th>Time saved on trip<br>(vs 60 <span class="unit-speed">mph</span>)</th>
     </tr>
   </thead>
   <tbody></tbody>
 </table>
 
-<p class="note">
+<p class="note" id="formulaNote">
   Baseline: 60 mph = 1 mile/minute = 60 seconds/mile. Above 60, time saved per mile = 60 &minus; (3600 / speed) seconds.
 </p>
 
@@ -104,8 +133,42 @@
   const minInput = document.getElementById('minSpeed');
   const maxInput = document.getElementById('maxSpeed');
   const stepInput = document.getElementById('step');
-  const tripInput = document.getElementById('tripMiles');
+  const tripInput = document.getElementById('tripDistance');
   const tbody = document.querySelector('#resultsTable tbody');
+  const toggle = document.getElementById('unitToggle');
+  const subtitle = document.getElementById('subtitle');
+  const formulaNote = document.getElementById('formulaNote');
+
+  const UNITS = {
+    mph: {
+      speed: 'mph',
+      distance: 'miles',
+      distanceCap: 'Miles',
+      distanceSingular: 'mile',
+      subtitle: 'At 60 mph you cover exactly 1 mile per minute. See what every mph above that saves you.',
+      formula: 'Baseline: 60 mph = 1 mile/minute = 60 seconds/mile. Above 60, time saved per mile = 60 − (3600 / speed) seconds.',
+    },
+    kmh: {
+      speed: 'km/h',
+      distance: 'km',
+      distanceCap: 'Km',
+      distanceSingular: 'km',
+      subtitle: 'At 60 km/h you cover exactly 1 km per minute. See what every km/h above that saves you.',
+      formula: 'Baseline: 60 km/h = 1 km/minute = 60 seconds/km. Above 60, time saved per km = 60 − (3600 / speed) seconds.',
+    },
+  };
+
+  let currentUnit = 'mph';
+
+  function applyUnitLabels() {
+    const u = UNITS[currentUnit];
+    document.querySelectorAll('.unit-speed').forEach(el => el.textContent = u.speed);
+    document.querySelectorAll('.unit-distance').forEach(el => el.textContent = u.distance);
+    document.querySelectorAll('.unit-distance-cap').forEach(el => el.textContent = u.distanceCap);
+    document.querySelectorAll('.unit-distance-singular').forEach(el => el.textContent = u.distanceSingular);
+    subtitle.textContent = u.subtitle;
+    formulaNote.textContent = u.formula;
+  }
 
   function formatTime(totalSeconds) {
     const sign = totalSeconds < 0 ? '-' : '';
@@ -127,30 +190,39 @@
     const trip = Math.max(0, parseFloat(tripInput.value) || 0);
 
     tbody.innerHTML = '';
-    for (let mph = min; mph <= max; mph += step) {
-      const milesPerMin = mph / 60;
-      const secPerMile = 3600 / mph;
-      const secSavedPerMile = 60 - secPerMile;
-      const tripSecondsAt60 = trip * 60;
-      const tripSecondsAtSpeed = trip * secPerMile;
-      const tripSaved = tripSecondsAt60 - tripSecondsAtSpeed;
+    for (let v = min; v <= max; v += step) {
+      const distPerMin = v / 60;
+      const secPerDist = 3600 / v;
+      const secSavedPerDist = 60 - secPerDist;
+      const tripSaved = trip * secSavedPerDist;
 
       const row = document.createElement('tr');
-      if (mph === 60) row.classList.add('baseline');
+      if (v === 60) row.classList.add('baseline');
       row.innerHTML = `
-        <td>${mph}</td>
-        <td>${milesPerMin.toFixed(4)}</td>
-        <td>${secPerMile.toFixed(2)}</td>
-        <td>${secSavedPerMile.toFixed(2)}</td>
+        <td>${v}</td>
+        <td>${distPerMin.toFixed(4)}</td>
+        <td>${secPerDist.toFixed(2)}</td>
+        <td>${secSavedPerDist.toFixed(2)}</td>
         <td>${formatTime(tripSaved)}</td>
       `;
       tbody.appendChild(row);
     }
   }
 
+  toggle.addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-unit]');
+    if (!btn) return;
+    currentUnit = btn.dataset.unit;
+    toggle.querySelectorAll('button').forEach(b => b.classList.toggle('active', b === btn));
+    applyUnitLabels();
+    render();
+  });
+
   [minInput, maxInput, stepInput, tripInput].forEach(el =>
     el.addEventListener('input', render)
   );
+
+  applyUnitLabels();
   render();
 </script>
 

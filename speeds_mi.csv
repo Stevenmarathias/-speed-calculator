@@ -1,4 +1,4 @@
-mph,miles_per_minute,seconds_per_mile,seconds_saved_per_mile
+speed_mph,miles_per_minute,seconds_per_mile,seconds_saved_per_mile
 60,1.0,60.0,0.0
 61,1.0166666666666666,59.01639344262295,0.9836065573770512
 62,1.0333333333333334,58.064516129032256,1.9354838709677438
