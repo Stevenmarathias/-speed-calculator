@@ -2,20 +2,124 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#2b6cb0">
 <title>Speed Over 60 Calculator</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.svg">
 <style>
+  :root {
+    --accent: #2b6cb0;
+    --accent-dark: #1e4e80;
+    --good: #16a34a;
+    --bad: #dc2626;
+    --bg: #f7f7f8;
+    --card: #ffffff;
+    --text: #222;
+    --muted: #666;
+  }
+  * { box-sizing: border-box; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     max-width: 900px;
-    margin: 2rem auto;
+    margin: 1.5rem auto;
     padding: 1rem;
-    background: #f7f7f8;
-    color: #222;
+    background: var(--bg);
+    color: var(--text);
   }
   h1 { margin-bottom: 0.25rem; }
-  .subtitle { color: #666; margin-top: 0; }
+  .subtitle { color: var(--muted); margin-top: 0; }
+
+  /* Live Mode card */
+  .live {
+    background: linear-gradient(155deg, #1e293b 0%, #0f172a 100%);
+    color: #f1f5f9;
+    border-radius: 14px;
+    padding: 1.25rem 1.25rem 1rem;
+    margin: 1rem 0 1.5rem;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.18);
+  }
+  .live h2 {
+    margin: 0 0 0.25rem;
+    font-size: 1rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #94a3b8;
+  }
+  .live .warn {
+    font-size: 0.78rem;
+    color: #fbbf24;
+    margin: 0 0 0.75rem;
+  }
+  .speedo {
+    text-align: center;
+    margin: 0.5rem 0 1rem;
+  }
+  .speedo .num {
+    font-size: 6.5rem;
+    font-weight: 700;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    color: white;
+    transition: color 0.3s;
+  }
+  .speedo .num.over { color: #4ade80; }
+  .speedo .num.under { color: #fb923c; }
+  .speedo .num.idle { color: #64748b; }
+  .speedo .unit-lbl {
+    font-size: 1.1rem;
+    color: #94a3b8;
+    margin-top: 0.25rem;
+  }
+  .live-metrics {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem 1rem;
+    margin: 0.5rem 0 1rem;
+    font-size: 0.95rem;
+  }
+  .live-metrics .row {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.4rem 0.6rem;
+    background: rgba(255,255,255,0.05);
+    border-radius: 6px;
+  }
+  .live-metrics .row span:first-child { color: #94a3b8; }
+  .live-metrics .row span:last-child {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+  }
+  .live-buttons {
+    display: flex;
+    gap: 0.5rem;
+  }
+  .live-buttons button {
+    flex: 1;
+    padding: 0.75rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .btn-start { background: #16a34a; color: white; }
+  .btn-start:disabled { background: #475569; color: #94a3b8; cursor: not-allowed; }
+  .btn-stop { background: #dc2626; color: white; }
+  .btn-stop:disabled { background: #475569; color: #94a3b8; cursor: not-allowed; }
+  .btn-reset { background: #475569; color: white; }
+  .gps-status {
+    font-size: 0.8rem;
+    color: #94a3b8;
+    margin-top: 0.6rem;
+    text-align: center;
+    min-height: 1.2em;
+  }
+  .gps-status.error { color: #fca5a5; }
+
+  /* Existing controls + table */
   .controls {
-    background: white;
+    background: var(--card);
     padding: 1rem 1.25rem;
     border-radius: 8px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.08);
@@ -26,7 +130,7 @@
     align-items: end;
   }
   .field { display: flex; flex-direction: column; }
-  .field label { font-size: 0.85rem; color: #555; margin-bottom: 0.25rem; }
+  .field label { font-size: 0.85rem; color: var(--muted); margin-bottom: 0.25rem; }
   .field input {
     padding: 0.5rem;
     border: 1px solid #ccc;
@@ -48,18 +152,17 @@
     cursor: pointer;
     font-size: 0.95rem;
     color: #444;
-    transition: background 0.15s, color 0.15s;
   }
   .toggle button + button { border-left: 1px solid #ccc; }
   .toggle button.active {
-    background: #2b6cb0;
+    background: var(--accent);
     color: white;
     font-weight: 600;
   }
   table {
     width: 100%;
     border-collapse: collapse;
-    background: white;
+    background: var(--card);
     border-radius: 8px;
     overflow: hidden;
     box-shadow: 0 1px 3px rgba(0,0,0,0.08);
@@ -71,14 +174,18 @@
   }
   th:first-child, td:first-child { text-align: left; }
   th {
-    background: #2b6cb0;
+    background: var(--accent);
     color: white;
     font-weight: 600;
     font-size: 0.9rem;
   }
   tr.baseline { background: #f1f5f9; font-weight: 600; }
-  tr:hover:not(.baseline) { background: #fafafa; }
-  .note { color: #666; font-size: 0.85rem; margin-top: 1rem; }
+  .note { color: var(--muted); font-size: 0.85rem; margin-top: 1rem; }
+
+  @media (max-width: 600px) {
+    .speedo .num { font-size: 5rem; }
+    body { margin: 0.5rem auto; }
+  }
 </style>
 </head>
 <body>
@@ -94,6 +201,35 @@
       <button type="button" data-unit="kmh">km/h</button>
     </div>
   </div>
+</div>
+
+<!-- ────────── LIVE MODE ────────── -->
+<section class="live" id="liveCard">
+  <h2>Live Mode</h2>
+  <p class="warn">⚠ Mount your phone — do not interact with it while driving. Intended for passenger use or quick glances at a mounted screen.</p>
+
+  <div class="speedo">
+    <div class="num idle" id="speedNum">--</div>
+    <div class="unit-lbl"><span class="unit-speed">mph</span></div>
+  </div>
+
+  <div class="live-metrics">
+    <div class="row"><span>Sec / <span class="unit-distance-singular">mile</span></span><span id="liveSecPer">—</span></div>
+    <div class="row"><span>Sec saved / <span class="unit-distance-singular">mile</span></span><span id="liveSaved">—</span></div>
+    <div class="row"><span>Trip distance</span><span id="liveDistance">0.00 <span class="unit-distance">mi</span></span></div>
+    <div class="row"><span>Time saved (trip)</span><span id="liveTimeSaved">0s</span></div>
+  </div>
+
+  <div class="live-buttons">
+    <button class="btn-start" id="startBtn">▶ Start GPS</button>
+    <button class="btn-stop" id="stopBtn" disabled>⏹ Stop</button>
+    <button class="btn-reset" id="resetBtn">↺ Reset trip</button>
+  </div>
+  <div class="gps-status" id="gpsStatus">GPS not started.</div>
+</section>
+
+<!-- ────────── CONTROLS for table ────────── -->
+<div class="controls">
   <div class="field">
     <label for="minSpeed">Min speed (<span class="unit-speed">mph</span>)</label>
     <input type="number" id="minSpeed" value="60" min="1" max="500">
@@ -130,6 +266,34 @@
 </p>
 
 <script>
+  // ────────── Shared state ──────────
+  const UNITS = {
+    mph: {
+      speed: 'mph',
+      distance: 'miles',
+      distanceCap: 'Miles',
+      distanceSingular: 'mile',
+      subtitle: 'At 60 mph you cover exactly 1 mile per minute. See what every mph above that saves you.',
+      formula: 'Baseline: 60 mph = 1 mile/minute = 60 seconds/mile. Above 60, time saved per mile = 60 − (3600 / speed) seconds.',
+      msToUnit: 2.2369362921,    // m/s → mph
+      mToDist: 1 / 1609.344,     // meters → miles
+      distShort: 'mi',
+    },
+    kmh: {
+      speed: 'km/h',
+      distance: 'km',
+      distanceCap: 'Km',
+      distanceSingular: 'km',
+      subtitle: 'At 60 km/h you cover exactly 1 km per minute. See what every km/h above that saves you.',
+      formula: 'Baseline: 60 km/h = 1 km/minute = 60 seconds/km. Above 60, time saved per km = 60 − (3600 / speed) seconds.',
+      msToUnit: 3.6,             // m/s → km/h
+      mToDist: 1 / 1000,         // meters → km
+      distShort: 'km',
+    },
+  };
+  let currentUnit = 'mph';
+
+  // ────────── DOM ──────────
   const minInput = document.getElementById('minSpeed');
   const maxInput = document.getElementById('maxSpeed');
   const stepInput = document.getElementById('step');
@@ -139,37 +303,17 @@
   const subtitle = document.getElementById('subtitle');
   const formulaNote = document.getElementById('formulaNote');
 
-  const UNITS = {
-    mph: {
-      speed: 'mph',
-      distance: 'miles',
-      distanceCap: 'Miles',
-      distanceSingular: 'mile',
-      subtitle: 'At 60 mph you cover exactly 1 mile per minute. See what every mph above that saves you.',
-      formula: 'Baseline: 60 mph = 1 mile/minute = 60 seconds/mile. Above 60, time saved per mile = 60 − (3600 / speed) seconds.',
-    },
-    kmh: {
-      speed: 'km/h',
-      distance: 'km',
-      distanceCap: 'Km',
-      distanceSingular: 'km',
-      subtitle: 'At 60 km/h you cover exactly 1 km per minute. See what every km/h above that saves you.',
-      formula: 'Baseline: 60 km/h = 1 km/minute = 60 seconds/km. Above 60, time saved per km = 60 − (3600 / speed) seconds.',
-    },
-  };
+  const speedNum = document.getElementById('speedNum');
+  const liveSecPer = document.getElementById('liveSecPer');
+  const liveSaved = document.getElementById('liveSaved');
+  const liveDistance = document.getElementById('liveDistance');
+  const liveTimeSaved = document.getElementById('liveTimeSaved');
+  const startBtn = document.getElementById('startBtn');
+  const stopBtn = document.getElementById('stopBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const gpsStatus = document.getElementById('gpsStatus');
 
-  let currentUnit = 'mph';
-
-  function applyUnitLabels() {
-    const u = UNITS[currentUnit];
-    document.querySelectorAll('.unit-speed').forEach(el => el.textContent = u.speed);
-    document.querySelectorAll('.unit-distance').forEach(el => el.textContent = u.distance);
-    document.querySelectorAll('.unit-distance-cap').forEach(el => el.textContent = u.distanceCap);
-    document.querySelectorAll('.unit-distance-singular').forEach(el => el.textContent = u.distanceSingular);
-    subtitle.textContent = u.subtitle;
-    formulaNote.textContent = u.formula;
-  }
-
+  // ────────── Helpers ──────────
   function formatTime(totalSeconds) {
     const sign = totalSeconds < 0 ? '-' : '';
     const s = Math.abs(totalSeconds);
@@ -183,7 +327,18 @@
     return sign + parts.join(' ');
   }
 
-  function render() {
+  function applyUnitLabels() {
+    const u = UNITS[currentUnit];
+    document.querySelectorAll('.unit-speed').forEach(el => el.textContent = u.speed);
+    document.querySelectorAll('.unit-distance').forEach(el => el.textContent = u.distShort);
+    document.querySelectorAll('.unit-distance-cap').forEach(el => el.textContent = u.distanceCap);
+    document.querySelectorAll('.unit-distance-singular').forEach(el => el.textContent = u.distanceSingular);
+    subtitle.textContent = u.subtitle;
+    formulaNote.textContent = u.formula;
+  }
+
+  // ────────── Table render ──────────
+  function renderTable() {
     const min = Math.max(1, parseFloat(minInput.value) || 60);
     const max = Math.max(min, parseFloat(maxInput.value) || 100);
     const step = Math.max(1, parseFloat(stepInput.value) || 1);
@@ -209,21 +364,147 @@
     }
   }
 
+  // ────────── Live Mode (GPS) ──────────
+  let watchId = null;
+  let wakeLock = null;
+  let lastUpdateMs = null;
+  let tripMeters = 0;
+  let tripSecondsSaved = 0;
+
+  function updateLiveDisplay(speedInUnit) {
+    const u = UNITS[currentUnit];
+    if (speedInUnit == null || !isFinite(speedInUnit)) {
+      speedNum.textContent = '--';
+      speedNum.className = 'num idle';
+      liveSecPer.textContent = '—';
+      liveSaved.textContent = '—';
+    } else {
+      const rounded = Math.max(0, speedInUnit);
+      speedNum.textContent = rounded.toFixed(0);
+      speedNum.className = 'num ' + (rounded > 60 ? 'over' : rounded < 60 ? 'under' : 'idle');
+      if (rounded > 0.5) {
+        const secPer = 3600 / rounded;
+        const saved = 60 - secPer;
+        liveSecPer.textContent = secPer.toFixed(1);
+        liveSaved.textContent = (saved >= 0 ? '+' : '') + saved.toFixed(2);
+      } else {
+        liveSecPer.textContent = '—';
+        liveSaved.textContent = '—';
+      }
+    }
+    liveDistance.innerHTML = `${(tripMeters * u.mToDist).toFixed(2)} <span class="unit-distance">${u.distShort}</span>`;
+    liveTimeSaved.textContent = formatTime(tripSecondsSaved);
+  }
+
+  function onPosition(pos) {
+    const u = UNITS[currentUnit];
+    const now = pos.timestamp || Date.now();
+    const speed_ms = pos.coords.speed; // m/s, may be null
+
+    if (speed_ms != null && isFinite(speed_ms) && lastUpdateMs != null) {
+      const dt = (now - lastUpdateMs) / 1000;
+      if (dt > 0 && dt < 10) {
+        tripMeters += speed_ms * dt;
+        const speed_uh = speed_ms * u.msToUnit;
+        // Time saved per second of driving = (speed - 60) / 60
+        tripSecondsSaved += dt * (speed_uh - 60) / 60;
+      }
+    }
+    lastUpdateMs = now;
+
+    const display = (speed_ms != null) ? speed_ms * u.msToUnit : null;
+    updateLiveDisplay(display);
+
+    const acc = pos.coords.accuracy ? `±${pos.coords.accuracy.toFixed(0)}m` : '';
+    gpsStatus.textContent = `GPS active. ${acc}`;
+    gpsStatus.classList.remove('error');
+  }
+
+  function onPositionError(err) {
+    gpsStatus.textContent = `GPS error: ${err.message}`;
+    gpsStatus.classList.add('error');
+  }
+
+  async function startGps() {
+    if (!navigator.geolocation) {
+      gpsStatus.textContent = 'Geolocation not supported in this browser.';
+      gpsStatus.classList.add('error');
+      return;
+    }
+    watchId = navigator.geolocation.watchPosition(onPosition, onPositionError, {
+      enableHighAccuracy: true,
+      timeout: 15000,
+      maximumAge: 1000,
+    });
+    startBtn.disabled = true;
+    stopBtn.disabled = false;
+    gpsStatus.textContent = 'Waiting for GPS lock…';
+    gpsStatus.classList.remove('error');
+
+    if ('wakeLock' in navigator) {
+      try {
+        wakeLock = await navigator.wakeLock.request('screen');
+      } catch (e) { /* not critical */ }
+    }
+  }
+
+  function stopGps() {
+    if (watchId != null) {
+      navigator.geolocation.clearWatch(watchId);
+      watchId = null;
+    }
+    if (wakeLock) {
+      wakeLock.release().catch(() => {});
+      wakeLock = null;
+    }
+    lastUpdateMs = null;
+    startBtn.disabled = false;
+    stopBtn.disabled = true;
+    gpsStatus.textContent = 'GPS stopped.';
+    speedNum.textContent = '--';
+    speedNum.className = 'num idle';
+  }
+
+  function resetTrip() {
+    tripMeters = 0;
+    tripSecondsSaved = 0;
+    updateLiveDisplay(null);
+  }
+
+  // Re-acquire wake lock when tab becomes visible again (iOS releases it on tab switch)
+  document.addEventListener('visibilitychange', async () => {
+    if (document.visibilityState === 'visible' && watchId != null && 'wakeLock' in navigator) {
+      try { wakeLock = await navigator.wakeLock.request('screen'); } catch (e) {}
+    }
+  });
+
+  // ────────── Wire up ──────────
   toggle.addEventListener('click', (e) => {
     const btn = e.target.closest('button[data-unit]');
     if (!btn) return;
     currentUnit = btn.dataset.unit;
     toggle.querySelectorAll('button').forEach(b => b.classList.toggle('active', b === btn));
     applyUnitLabels();
-    render();
+    renderTable();
+    updateLiveDisplay(null);
   });
 
   [minInput, maxInput, stepInput, tripInput].forEach(el =>
-    el.addEventListener('input', render)
+    el.addEventListener('input', renderTable)
   );
 
+  startBtn.addEventListener('click', startGps);
+  stopBtn.addEventListener('click', stopGps);
+  resetBtn.addEventListener('click', resetTrip);
+
   applyUnitLabels();
-  render();
+  renderTable();
+  updateLiveDisplay(null);
+
+  // Register service worker for PWA install
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
 </script>
 
 </body>
