@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Speed Over 60 Calculator</title>
+<style>
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    max-width: 900px;
+    margin: 2rem auto;
+    padding: 1rem;
+    background: #f7f7f8;
+    color: #222;
+  }
+  h1 { margin-bottom: 0.25rem; }
+  .subtitle { color: #666; margin-top: 0; }
+  .controls {
+    background: white;
+    padding: 1rem 1.25rem;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    margin-bottom: 1.25rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: end;
+  }
+  .field { display: flex; flex-direction: column; }
+  .field label { font-size: 0.85rem; color: #555; margin-bottom: 0.25rem; }
+  .field input {
+    padding: 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 1rem;
+    width: 110px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  th, td {
+    padding: 0.6rem 0.85rem;
+    text-align: right;
+    border-bottom: 1px solid #eee;
+  }
+  th:first-child, td:first-child { text-align: left; }
+  th {
+    background: #2b6cb0;
+    color: white;
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+  tr.baseline { background: #f1f5f9; font-weight: 600; }
+  tr:hover:not(.baseline) { background: #fafafa; }
+  .note { color: #666; font-size: 0.85rem; margin-top: 1rem; }
+</style>
+</head>
+<body>
+
+<h1>Speed Over 60 Calculator</h1>
+<p class="subtitle">At 60 mph you cover exactly 1 mile per minute. See what every mph above that saves you.</p>
+
+<div class="controls">
+  <div class="field">
+    <label for="minSpeed">Min speed (mph)</label>
+    <input type="number" id="minSpeed" value="60" min="1" max="200">
+  </div>
+  <div class="field">
+    <label for="maxSpeed">Max speed (mph)</label>
+    <input type="number" id="maxSpeed" value="100" min="1" max="300">
+  </div>
+  <div class="field">
+    <label for="step">Step</label>
+    <input type="number" id="step" value="1" min="1" max="20">
+  </div>
+  <div class="field">
+    <label for="tripMiles">Trip distance (miles)</label>
+    <input type="number" id="tripMiles" value="100" min="1" max="10000">
+  </div>
+</div>
+
+<table id="resultsTable">
+  <thead>
+    <tr>
+      <th>Speed (mph)</th>
+      <th>Miles / minute</th>
+      <th>Seconds / mile</th>
+      <th>Sec saved per mile<br>(vs 60 mph)</th>
+      <th>Time saved on trip<br>(vs 60 mph)</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<p class="note">
+  Baseline: 60 mph = 1 mile/minute = 60 seconds/mile. Above 60, time saved per mile = 60 &minus; (3600 / speed) seconds.
+</p>
+
+<script>
+  const minInput = document.getElementById('minSpeed');
+  const maxInput = document.getElementById('maxSpeed');
+  const stepInput = document.getElementById('step');
+  const tripInput = document.getElementById('tripMiles');
+  const tbody = document.querySelector('#resultsTable tbody');
+
+  function formatTime(totalSeconds) {
+    const sign = totalSeconds < 0 ? '-' : '';
+    const s = Math.abs(totalSeconds);
+    const hours = Math.floor(s / 3600);
+    const minutes = Math.floor((s % 3600) / 60);
+    const seconds = (s % 60).toFixed(1);
+    const parts = [];
+    if (hours) parts.push(hours + 'h');
+    if (minutes || hours) parts.push(minutes + 'm');
+    parts.push(seconds + 's');
+    return sign + parts.join(' ');
+  }
+
+  function render() {
+    const min = Math.max(1, parseFloat(minInput.value) || 60);
+    const max = Math.max(min, parseFloat(maxInput.value) || 100);
+    const step = Math.max(1, parseFloat(stepInput.value) || 1);
+    const trip = Math.max(0, parseFloat(tripInput.value) || 0);
+
+    tbody.innerHTML = '';
+    for (let mph = min; mph <= max; mph += step) {
+      const milesPerMin = mph / 60;
+      const secPerMile = 3600 / mph;
+      const secSavedPerMile = 60 - secPerMile;
+      const tripSecondsAt60 = trip * 60;
+      const tripSecondsAtSpeed = trip * secPerMile;
+      const tripSaved = tripSecondsAt60 - tripSecondsAtSpeed;
+
+      const row = document.createElement('tr');
+      if (mph === 60) row.classList.add('baseline');
+      row.innerHTML = `
+        <td>${mph}</td>
+        <td>${milesPerMin.toFixed(4)}</td>
+        <td>${secPerMile.toFixed(2)}</td>
+        <td>${secSavedPerMile.toFixed(2)}</td>
+        <td>${formatTime(tripSaved)}</td>
+      `;
+      tbody.appendChild(row);
+    }
+  }
+
+  [minInput, maxInput, stepInput, tripInput].forEach(el =>
+    el.addEventListener('input', render)
+  );
+  render();
+</script>
+
+</body>
+</html>
