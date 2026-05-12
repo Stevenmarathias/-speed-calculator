@@ -1,12 +1,29 @@
 # Speed Over 60 Calculator
 
-An interactive table that shows how much time you save per mile when driving over 60 mph.
+How much time do you save per mile when driving over 60 mph? At 60 mph you cover exactly **1 mile per minute** (60 seconds per mile). Every mph above 60 shaves a little time off each mile — this tool calculates how much.
 
-At 60 mph you cover exactly **1 mile per minute** (60 seconds per mile). Every mph above 60 shaves a little time off each mile — this tool calculates how much.
+![Seconds saved per mile vs 60 mph](time_saved.png)
 
-## Live demo
+## Two ways to use it
 
+### Web (interactive)
 Open `index.html` in any browser, or enable GitHub Pages on this repo to host it.
+
+### Python CLI
+```bash
+python speed_calc.py 75 --trip 200
+# Speed:               75.00 mph
+# Miles per minute:    1.2500
+# Seconds per mile:    48.00
+# Sec saved per mile:  +12.00  (vs 60 mph)
+# Trip (200.0 mi) time: 2h 40m 0.0s
+# Time saved on trip:  40m 0.0s
+```
+
+Regenerate the chart and CSV:
+```bash
+python speed_calc.py --export --min 60 --max 120 --step 1
+```
 
 ## What it shows
 
@@ -36,6 +53,17 @@ For every speed in a range you choose:
 | 80    | 1.3333    | 45.00    | 15.00          | 25m 0.0s               |
 | 100   | 1.6667    | 36.00    | 24.00          | 40m 0.0s               |
 
-## Usage
+## Files
 
-No build step, no dependencies. Just open `index.html`.
+- `index.html` — interactive web table (no dependencies, no build step)
+- `speed_calc.py` — Python CLI for one-off queries and chart/CSV export
+- `speeds.csv` — exported table for 60–120 mph in 1 mph steps
+- `time_saved.png` — chart of seconds saved per mile vs speed
+
+## Python requirements
+
+The CLI uses only the standard library for queries. The `--export` chart needs matplotlib:
+
+```bash
+pip install matplotlib
+```
